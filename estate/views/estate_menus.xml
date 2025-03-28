@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Top-Level Menu -->
+    <menuitem id="menu_real_estate" name="Real Estate" sequence="1"/>
+
+    <!-- Submenu: Advertisements -->
+    <menuitem id="menu_real_estate_advertisements" 
+              name="Advertisements" 
+              parent="menu_real_estate" 
+              sequence="2"/>
+
+    <!-- Submenu: Properties (Inside Advertisements) -->
+    <menuitem id="menu_real_estate_properties" 
+              name="Properties" 
+              parent="menu_real_estate_advertisements" 
+              action="estate.estate_property_action" 
+              sequence="3"/>
+</odoo>

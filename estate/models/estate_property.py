@@ -1,63 +1,59 @@
-    # Import the required modules from Odoo
-from odoo import models, fields
+from odoo import models, fields, api
+from datetime import timedelta, date  # Import timedelta and date for default values
 
-# Define a new model for storing real estate property details
 class EstateProperty(models.Model):
-    _name = "estate.property"  # This is the technical name of the model (table name in the database)
-    _description = "Real Estate Property"  # A short description of the model
+    _name = "estate.property"  # Model name (used for database storage)
+    _description = "Real Estate Property"  # Description of the model
 
-    # Defining fields (columns in the database)
+    # Basic Property Information
     name = fields.Char(
-        string="Title",  # Human-readable name for the field (used in UI)
-        required=True,  # This makes the field mandatory
+        string="Title",
+        required=True,
     )
 
-    description = fields.Text(
-        string="Description"  # A long text field for extra details
-    )
+    description = fields.Text(string="Description")
 
-    postcode = fields.Char(
-        string="Postcode"  # Stores the postal code of the property location
-    )
+    postcode = fields.Char(string="Postcode")
 
-    date_availability = fields.Date(
-        string="Available From"  # Date field to store when the property will be available
+    available_from = fields.Date(
+        string="Available From",
+        copy=False,
+        default=lambda self: date.today() + timedelta(days=90),
     )
 
     expected_price = fields.Float(
-        string="Expected Price",  # Stores the asking price of the property
-        required=True,  # This makes sure that a price must be set
+        string="Expected Price",
+        required=True,
     )
 
     selling_price = fields.Float(
-        string="Selling Price",  # Stores the final selling price
-        readonly=True,  # This field cannot be edited manually
-        copy=False,  # Prevents the value from being copied when duplicating a record
+        string="Selling Price",
+        readonly=True,
+        copy=False,
     )
 
     bedrooms = fields.Integer(
-        string="Bedrooms",  # Stores the number of bedrooms
-        default=1,  # If not specified, it defaults to 1 bedroom
+        string="Bedrooms",
+        default=2,
     )
 
     living_area = fields.Integer(
-        string="Living Area (sqm)"  # Stores the size of the living area in square meters
+        string="Living Area (sqm)",
+        default=0,
     )
 
     facades = fields.Integer(
-        string="Facades"  # Number of external sides (facades) of the house
+        string="Facades",
+        default=0,
     )
 
-    garage = fields.Boolean(
-        string="Garage"  # Boolean field (True/False) to indicate if a garage is present
-    )
+    garage = fields.Boolean(string="Garage")
 
-    garden = fields.Boolean(
-        string="Garden"  # Boolean field to indicate if the property has a garden
-    )
+    garden = fields.Boolean(string="Garden")
 
     garden_area = fields.Integer(
-        string="Garden Area (sqm)"  # Stores the size of the garden in square meters
+        string="Garden Area (sqm)",
+        default=0,
     )
 
     garden_orientation = fields.Selection(
@@ -67,7 +63,50 @@ class EstateProperty(models.Model):
             ("east", "East"),
             ("west", "West"),
         ],
-        string="Garden Orientation",  # Stores the direction the garden faces
+        string="Garden Orientation",
     )
 
-# This will create a table 'estate_property' in the database with all the above fields.
+    state = fields.Selection(
+        selection=[
+            ("new", "New"),
+            ("offer_received", "Offer Received"),
+            ("offer_accepted", "Offer Accepted"),
+            ("sold", "Sold"),
+            ("canceled", "Canceled"),
+        ],
+        string="Status",
+        required=True,
+        default="new",
+        copy=False,
+    )
+
+    active = fields.Boolean(
+        string="Active",
+        default=True,
+    )
+
+    total_area = fields.Integer(
+        string="Total Area (sqm)",
+        compute="_compute_total_area",
+        store=True,
+    )
+
+    @api.depends("living_area", "garden_area")
+    def _compute_total_area(self):
+        for record in self:
+            record.total_area = record.living_area + record.garden_area
+
+    price_per_sqm = fields.Float(
+        string="Price per Square Meter",
+        compute="_compute_price_per_sqm",
+        store=True,
+    )
+
+    @api.depends("selling_price", "total_area")
+    def _compute_price_per_sqm(self):
+        for record in self:
+            if record.total_area > 0:
+                record.price_per_sqm = record.selling_price / record.total_area
+            else:
+                record.price_per_sqm = 0
+
